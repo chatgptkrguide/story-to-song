@@ -41,6 +41,8 @@ export async function GET(
   return NextResponse.json({ data });
 }
 
+const VALID_STATUSES = ["pending", "in_progress", "completed", "rejected"] as const;
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -67,9 +69,33 @@ export async function PATCH(
   const body = await request.json();
   const { status, admin_note } = body;
 
+  // 상태값 화이트리스트 검증
+  if (status && !VALID_STATUSES.includes(status)) {
+    return NextResponse.json(
+      { error: "유효하지 않은 상태값입니다" },
+      { status: 400 }
+    );
+  }
+
+  // admin_note 타입 및 길이 검증
+  if (admin_note !== undefined) {
+    if (typeof admin_note !== "string") {
+      return NextResponse.json(
+        { error: "메모는 문자열이어야 합니다" },
+        { status: 400 }
+      );
+    }
+    if (admin_note.length > 1000) {
+      return NextResponse.json(
+        { error: "메모는 1000자 이하여야 합니다" },
+        { status: 400 }
+      );
+    }
+  }
+
   const updateData: Record<string, string> = {};
   if (status) updateData.status = status;
-  if (admin_note) updateData.admin_note = admin_note;
+  if (admin_note !== undefined) updateData.admin_note = admin_note;
 
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json(

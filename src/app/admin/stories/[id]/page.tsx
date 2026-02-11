@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
   Upload,
@@ -32,16 +31,21 @@ const statusColor: Record<StoryStatus, string> = {
   rejected: "bg-red-500/20 text-red-400",
 };
 
+const ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/mp3", "audio/wav"];
+
+interface StoryDetailData extends Story {
+  song: Song | null;
+  user: Pick<User, "id" | "name" | "email"> | null;
+}
+
 export default function AdminStoryDetailPage() {
   const params = useParams();
   const router = useRouter();
   const storyId = params.id as string;
-  const supabase = createClient();
 
-  const [story, setStory] = useState<Story | null>(null);
-  const [author, setAuthor] = useState<Pick<User, "id" | "name" | "email"> | null>(null);
-  const [song, setSong] = useState<Song | null>(null);
+  const [story, setStory] = useState<StoryDetailData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Upload state
   const [songTitle, setSongTitle] = useState("");
@@ -57,45 +61,31 @@ export default function AdminStoryDetailPage() {
 
   // Admin memo
   const [memo, setMemo] = useState("");
+  const [memoSaving, setMemoSaving] = useState(false);
 
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
 
-    const { data: storyData } = await supabase
-      .from("stories")
-      .select("*")
-      .eq("id", storyId)
-      .single();
+    const res = await fetch(`/api/stories/${storyId}`);
 
-    if (storyData) {
-      setStory(storyData as Story);
-
-      const { data: userData } = await supabase
-        .from("users")
-        .select("id, name, email")
-        .eq("id", storyData.user_id)
-        .single();
-
-      if (userData) {
-        setAuthor(userData as Pick<User, "id" | "name" | "email">);
-      }
+    if (!res.ok) {
+      const body = await res.json();
+      setFetchError(body.error ?? "데이터를 불러올 수 없습니다");
+      setLoading(false);
+      return;
     }
 
-    const { data: songData } = await supabase
-      .from("songs")
-      .select("*")
-      .eq("story_id", storyId)
-      .maybeSingle();
-
-    if (songData) {
-      setSong(songData as Song);
+    const { data } = await res.json();
+    setStory(data as StoryDetailData);
+    if (data.admin_note) {
+      setMemo(data.admin_note);
     }
-
     setLoading(false);
-  }, [storyId, supabase]);
+  }, [storyId]);
 
   useEffect(() => {
     fetchData();
@@ -104,14 +94,31 @@ export default function AdminStoryDetailPage() {
   const handleStatusChange = async (newStatus: StoryStatus): Promise<void> => {
     if (!story) return;
 
-    const { error } = await supabase
-      .from("stories")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq("id", story.id);
+    const res = await fetch(`/api/stories/${story.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
 
-    if (!error) {
+    if (res.ok) {
       setStory({ ...story, status: newStatus });
     }
+  };
+
+  const handleSaveMemo = async (): Promise<void> => {
+    if (!story) return;
+    setMemoSaving(true);
+
+    const res = await fetch(`/api/stories/${story.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ admin_note: memo }),
+    });
+
+    if (res.ok) {
+      setStory({ ...story, admin_note: memo });
+    }
+    setMemoSaving(false);
   };
 
   const handleDragOver = (e: React.DragEvent): void => {
@@ -129,22 +136,22 @@ export default function AdminStoryDetailPage() {
     setIsDragging(false);
 
     const file = e.dataTransfer.files[0];
-    if (file && file.type === "audio/mpeg") {
+    if (file && ALLOWED_AUDIO_TYPES.includes(file.type)) {
       setSelectedFile(file);
       setUploadError(null);
     } else {
-      setUploadError("MP3 파일만 업로드할 수 있습니다.");
+      setUploadError("MP3 또는 WAV 파일만 업로드할 수 있습니다.");
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.type === "audio/mpeg") {
+      if (ALLOWED_AUDIO_TYPES.includes(file.type)) {
         setSelectedFile(file);
         setUploadError(null);
       } else {
-        setUploadError("MP3 파일만 업로드할 수 있습니다.");
+        setUploadError("MP3 또는 WAV 파일만 업로드할 수 있습니다.");
       }
     }
   };
@@ -157,70 +164,64 @@ export default function AdminStoryDetailPage() {
     setUploadError(null);
     setUploadSuccess(false);
 
-    const filePath = `songs/${story.id}/${selectedFile.name}`;
-
-    // Simulate progress steps
     const progressInterval = setInterval(() => {
       setUploadProgress((prev) => {
-        if (prev >= 90) {
+        if (prev >= 80) {
           clearInterval(progressInterval);
           return prev;
         }
         return prev + 10;
       });
-    }, 200);
+    }, 300);
 
-    const { error: storageError } = await supabase.storage
-      .from("songs")
-      .upload(filePath, selectedFile, {
-        cacheControl: "3600",
-        upsert: true,
-      });
+    // 1. API 라우트를 통해 파일 업로드
+    const formData = new FormData();
+    formData.append("file", selectedFile);
 
-    if (storageError) {
+    const uploadRes = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!uploadRes.ok) {
       clearInterval(progressInterval);
-      setUploadError(`업로드 실패: ${storageError.message}`);
+      const body = await uploadRes.json();
+      setUploadError(body.error ?? "파일 업로드에 실패했습니다");
       setUploading(false);
       return;
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from("songs")
-      .getPublicUrl(filePath);
+    const { url: audioUrl } = await uploadRes.json();
+    setUploadProgress(85);
 
-    setUploadProgress(95);
-
-    const { data: songData, error: insertError } = await supabase
-      .from("songs")
-      .insert({
+    // 2. API 라우트를 통해 노래 등록
+    const songRes = await fetch("/api/songs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         story_id: story.id,
         title: songTitle.trim(),
-        artist_name: "Story to Song",
-        audio_url: publicUrlData.publicUrl,
-        preview_duration: 60,
-        full_duration: 0,
-        status: "draft",
-      })
-      .select()
-      .single();
+        audio_url: audioUrl,
+      }),
+    });
 
     clearInterval(progressInterval);
 
-    if (insertError) {
-      setUploadError(`저장 실패: ${insertError.message}`);
+    if (!songRes.ok) {
+      const body = await songRes.json();
+      setUploadError(body.error ?? "노래 등록에 실패했습니다");
       setUploading(false);
       return;
     }
 
+    const { data: songData } = await songRes.json();
+
     setUploadProgress(100);
-    setSong(songData as Song);
+    setStory({ ...story, song: songData as Song, status: "completed" });
     setUploadSuccess(true);
     setUploading(false);
     setSongTitle("");
     setSelectedFile(null);
-
-    // Auto update story status to completed
-    await handleStatusChange("completed");
   };
 
   const togglePlay = (): void => {
@@ -242,10 +243,10 @@ export default function AdminStoryDetailPage() {
     );
   }
 
-  if (!story) {
+  if (fetchError || !story) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-400">이야기를 찾을 수 없습니다.</p>
+        <p className="text-slate-400">{fetchError ?? "이야기를 찾을 수 없습니다."}</p>
         <Link
           href="/admin/stories"
           className="text-purple-400 hover:text-purple-300 mt-4 inline-block"
@@ -255,6 +256,9 @@ export default function AdminStoryDetailPage() {
       </div>
     );
   }
+
+  const song = story.song;
+  const author = story.user;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -333,7 +337,7 @@ export default function AdminStoryDetailPage() {
                 >
                   <input
                     type="file"
-                    accept="audio/mpeg"
+                    accept=".mp3,.wav,audio/mpeg,audio/wav"
                     onChange={handleFileSelect}
                     className="hidden"
                     id="file-upload"
@@ -352,10 +356,10 @@ export default function AdminStoryDetailPage() {
                     ) : (
                       <div>
                         <p className="text-sm text-slate-400">
-                          MP3 파일을 드래그하거나 클릭하여 선택
+                          MP3/WAV 파일을 드래그하거나 클릭하여 선택
                         </p>
                         <p className="text-xs text-slate-600 mt-1">
-                          MP3 형식만 지원
+                          MP3, WAV 형식 지원 (50MB 이하)
                         </p>
                       </div>
                     )}
@@ -493,9 +497,20 @@ export default function AdminStoryDetailPage() {
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
               placeholder="메모를 입력하세요..."
+              maxLength={1000}
               rows={4}
               className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white placeholder-slate-500 text-sm resize-none focus:outline-none focus:border-purple-500 transition-colors"
             />
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-slate-500">{memo.length}/1000</span>
+              <button
+                onClick={handleSaveMemo}
+                disabled={memoSaving}
+                className="text-xs text-purple-400 hover:text-purple-300 disabled:text-slate-600"
+              >
+                {memoSaving ? "저장 중..." : "메모 저장"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

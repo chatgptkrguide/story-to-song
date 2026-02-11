@@ -14,6 +14,7 @@ export interface Story {
   mood: string;
   genre: string;
   status: "pending" | "in_progress" | "completed" | "rejected";
+  admin_note: string | null;
   created_at: string;
   updated_at: string;
 }
