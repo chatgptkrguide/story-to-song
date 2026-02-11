@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Music, Menu, X, User, LogIn } from "lucide-react";
+import { Music, Menu, X } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", label: "홈" },
@@ -12,8 +12,6 @@ const NAV_ITEMS = [
 
 export default function Header(): React.ReactElement {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // TODO: Supabase auth 연동 후 실제 로그인 상태로 교체
-  const isLoggedIn = false;
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl">
@@ -41,30 +39,8 @@ export default function Header(): React.ReactElement {
           ))}
         </nav>
 
-        {/* Desktop Auth Buttons */}
-        <div className="hidden items-center gap-3 md:flex">
-          {isLoggedIn ? (
-            <button className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
-              <User className="h-5 w-5" />
-            </button>
-          ) : (
-            <>
-              <Link
-                href="/auth/login"
-                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
-              >
-                로그인
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-              >
-                <LogIn className="h-4 w-4" />
-                회원가입
-              </Link>
-            </>
-          )}
-        </div>
+        {/* Spacer for desktop */}
+        <div className="hidden md:block w-[100px]" />
 
         {/* Mobile Menu Button */}
         <button
@@ -94,31 +70,6 @@ export default function Header(): React.ReactElement {
                 {item.label}
               </Link>
             ))}
-            <div className="mt-3 border-t border-slate-800 pt-3">
-              {isLoggedIn ? (
-                <button className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white">
-                  <User className="h-4 w-4" />
-                  마이페이지
-                </button>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <Link
-                    href="/auth/login"
-                    className="rounded-lg px-4 py-3 text-center text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    로그인
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-center text-sm font-medium text-white transition-opacity hover:opacity-90"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    회원가입
-                  </Link>
-                </div>
-              )}
-            </div>
           </nav>
         </div>
       )}
