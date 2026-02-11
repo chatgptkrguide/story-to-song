@@ -1,6 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+export function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  return Boolean(
+    url && key && url.startsWith("https://") && key.length > 20
+  );
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
 

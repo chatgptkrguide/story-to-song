@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { Music, Clock, CheckCircle, XCircle, Loader, Plus } from "lucide-react";
 import Link from "next/link";
 import type { Story, Song } from "@/types/database";
+import SetupRequired from "@/components/ui/SetupRequired";
 
 interface StoryRow extends Story {
   songs: Song[];
@@ -31,6 +32,10 @@ const STATUS_CONFIG = {
 } as const;
 
 export default async function MySongsPage(): Promise<React.ReactElement> {
+  if (!isSupabaseConfigured()) {
+    return <SetupRequired />;
+  }
+
   const supabase = await createClient();
 
   const {

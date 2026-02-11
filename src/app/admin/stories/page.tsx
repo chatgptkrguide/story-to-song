@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import Link from "next/link";
 import type { Story } from "@/types/database";
 import { StoryFilters } from "./story-filters";
+import SetupRequired from "@/components/ui/SetupRequired";
 
 const statusLabel: Record<Story["status"], string> = {
   pending: "대기중",
@@ -27,6 +28,10 @@ interface AdminStoriesPageProps {
 export default async function AdminStoriesPage({
   searchParams,
 }: AdminStoriesPageProps) {
+  if (!isSupabaseConfigured()) {
+    return <SetupRequired />;
+  }
+
   const { status, search } = await searchParams;
   const supabase = await createClient();
 

@@ -1,16 +1,21 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Music } from "lucide-react";
 import AudioPlayer from "@/components/music/AudioPlayer";
 import PurchaseOptions from "@/components/music/PurchaseOptions";
 import type { SongWithStory } from "@/types/database";
+import SetupRequired from "@/components/ui/SetupRequired";
 
 interface PlayPageProps {
   params: Promise<{ id: string }>;
 }
 
 export default async function PlayPage({ params }: PlayPageProps): Promise<React.ReactElement> {
+  if (!isSupabaseConfigured()) {
+    return <SetupRequired />;
+  }
+
   const { id } = await params;
   const supabase = await createClient();
 

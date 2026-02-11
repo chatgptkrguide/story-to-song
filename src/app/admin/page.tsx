@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   BookOpen,
   Clock,
@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Story } from "@/types/database";
+import SetupRequired from "@/components/ui/SetupRequired";
 
 const statusLabel: Record<Story["status"], string> = {
   pending: "대기중",
@@ -23,6 +24,10 @@ const statusColor: Record<Story["status"], string> = {
 };
 
 export default async function AdminDashboardPage() {
+  if (!isSupabaseConfigured()) {
+    return <SetupRequired />;
+  }
+
   const supabase = await createClient();
 
   const [totalRes, pendingRes, progressRes, completedRes, recentRes] =
