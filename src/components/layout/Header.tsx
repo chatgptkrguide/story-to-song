@@ -50,13 +50,13 @@ export default function Header(): React.ReactElement {
           ) : (
             <>
               <Link
-                href="/login"
+                href="/auth/login"
                 className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
               >
                 로그인
               </Link>
               <Link
-                href="/signup"
+                href="/auth/signup"
                 className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
               >
                 <LogIn className="h-4 w-4" />
@@ -103,14 +103,14 @@ export default function Header(): React.ReactElement {
               ) : (
                 <div className="flex flex-col gap-2">
                   <Link
-                    href="/login"
+                    href="/auth/login"
                     className="rounded-lg px-4 py-3 text-center text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     로그인
                   </Link>
                   <Link
-                    href="/signup"
+                    href="/auth/signup"
                     className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-center text-sm font-medium text-white transition-opacity hover:opacity-90"
                     onClick={() => setMobileMenuOpen(false)}
                   >

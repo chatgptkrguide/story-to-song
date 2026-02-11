@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -36,6 +36,10 @@ function getFileExtension(filename: string): string {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: "서비스 준비 중입니다." }, { status: 503 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

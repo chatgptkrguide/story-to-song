@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -6,6 +6,10 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: "서비스 준비 중입니다." }, { status: 503 });
+  }
+
   const { id } = await params;
   const supabase = await createClient();
   const {
@@ -47,6 +51,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: "서비스 준비 중입니다." }, { status: 503 });
+  }
+
   const { id } = await params;
   const supabase = await createClient();
   const {
