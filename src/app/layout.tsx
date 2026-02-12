@@ -28,7 +28,7 @@ export default function RootLayout({
         className={`${notoSansKR.variable} min-h-screen bg-slate-950 font-sans text-white antialiased`}
       >
         <Header />
-        <main className="flex-1">{children}</main>
+        <main>{children}</main>
         <Footer />
       </body>
     </html>
