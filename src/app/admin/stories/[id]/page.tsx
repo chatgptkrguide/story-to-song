@@ -33,6 +33,21 @@ const statusColor: Record<StoryStatus, string> = {
 
 const ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/mp3", "audio/wav"];
 
+interface SubmitterInfo {
+  name?: string;
+  email?: string;
+  memo?: string;
+}
+
+function parseAdminNote(note: string | null): SubmitterInfo {
+  if (!note) return {};
+  try {
+    return JSON.parse(note) as SubmitterInfo;
+  } catch {
+    return { memo: note };
+  }
+}
+
 interface StoryDetailData extends Story {
   song: Song | null;
   user: Pick<User, "id" | "name" | "email"> | null;
@@ -81,9 +96,8 @@ export default function AdminStoryDetailPage() {
 
     const { data } = await res.json();
     setStory(data as StoryDetailData);
-    if (data.admin_note) {
-      setMemo(data.admin_note);
-    }
+    const noteData = parseAdminNote(data.admin_note);
+    setMemo(noteData.memo ?? "");
     setLoading(false);
   }, [storyId]);
 
@@ -109,14 +123,17 @@ export default function AdminStoryDetailPage() {
     if (!story) return;
     setMemoSaving(true);
 
+    const noteData = parseAdminNote(story.admin_note);
+    const updatedNote = JSON.stringify({ ...noteData, memo });
+
     const res = await fetch(`/api/stories/${story.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ admin_note: memo }),
+      body: JSON.stringify({ admin_note: updatedNote }),
     });
 
     if (res.ok) {
-      setStory({ ...story, admin_note: memo });
+      setStory({ ...story, admin_note: updatedNote });
     }
     setMemoSaving(false);
   };
@@ -259,6 +276,7 @@ export default function AdminStoryDetailPage() {
 
   const song = story.song;
   const author = story.user;
+  const submitter = parseAdminNote(story.admin_note);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -452,8 +470,17 @@ export default function AdminStoryDetailPage() {
         <div className="space-y-6">
           {/* Author info */}
           <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
-            <h3 className="text-sm font-semibold text-white mb-3">작성자</h3>
-            {author ? (
+            <h3 className="text-sm font-semibold text-white mb-3">제출자</h3>
+            {submitter.name || submitter.email ? (
+              <div>
+                {submitter.name && (
+                  <p className="text-sm text-white">{submitter.name}</p>
+                )}
+                {submitter.email && (
+                  <p className="text-xs text-slate-400 mt-0.5">{submitter.email}</p>
+                )}
+              </div>
+            ) : author ? (
               <div>
                 <p className="text-sm text-white">{author.name}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{author.email}</p>
