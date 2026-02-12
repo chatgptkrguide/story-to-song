@@ -23,6 +23,33 @@ const MAX_TITLE_LENGTH = 100;
 const MAX_CONTENT_LENGTH = 5000;
 const MAX_NAME_LENGTH = 50;
 
+const ANON_EMAIL = "anonymous@storytosong.internal";
+let cachedAnonUserId: string | null = null;
+
+async function getAnonymousUserId(supabase: ReturnType<typeof createServiceClient>): Promise<string | null> {
+  if (cachedAnonUserId) return cachedAnonUserId;
+
+  const { data: createData } = await supabase.auth.admin.createUser({
+    email: ANON_EMAIL,
+    password: crypto.randomUUID(),
+    email_confirm: true,
+  });
+
+  if (createData?.user) {
+    cachedAnonUserId = createData.user.id;
+    return cachedAnonUserId;
+  }
+
+  const { data: listData } = await supabase.auth.admin.listUsers();
+  const found = listData?.users?.find((u) => u.email === ANON_EMAIL);
+  if (found) {
+    cachedAnonUserId = found.id;
+    return cachedAnonUserId;
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "서비스 준비 중입니다." }, { status: 503 });
@@ -95,9 +122,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const supabase = createServiceClient();
 
+  const anonUserId = await getAnonymousUserId(supabase);
+  if (!anonUserId) {
+    return NextResponse.json(
+      { error: "서비스 초기화에 실패했습니다." },
+      { status: 500 }
+    );
+  }
+
   const { data, error } = await supabase
     .from("stories")
     .insert({
+      user_id: anonUserId,
       title,
       content,
       mood: "자유",
@@ -109,6 +145,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .single();
 
   if (error) {
+    console.error("Story insert error:", error.message);
     return NextResponse.json(
       { error: "이야기 저장에 실패했습니다." },
       { status: 500 }
