@@ -25,26 +25,10 @@ export interface Song {
   title: string;
   artist_name: string;
   audio_url: string;
-  preview_duration: number; // seconds (default 60)
-  full_duration: number; // seconds
+  full_duration: number;
   cover_image_url: string | null;
   status: "draft" | "published";
   created_at: string;
-}
-
-export interface Purchase {
-  id: string;
-  user_id: string;
-  song_id: string;
-  purchase_type: "one_time" | "subscription" | "copyright";
-  status: "pending" | "completed" | "cancelled";
-  price: number;
-  created_at: string;
-}
-
-export interface StoryWithSong extends Story {
-  song: Song | null;
-  user: Pick<User, "id" | "name" | "email">;
 }
 
 export interface SongWithStory extends Song {

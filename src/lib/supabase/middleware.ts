@@ -51,20 +51,15 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // 보호된 경로 체크
-    const protectedPaths = ["/submit", "/my-songs", "/admin"];
-    const isProtectedPath = protectedPaths.some((path) =>
-      request.nextUrl.pathname.startsWith(path)
-    );
-
-    if (isProtectedPath && !user) {
+    // 관리자 경로: 로그인 필수
+    if (request.nextUrl.pathname.startsWith("/admin") && !user) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/login";
       url.searchParams.set("redirect", request.nextUrl.pathname);
       return NextResponse.redirect(url);
     }
 
-    // 관리자 경로 체크
+    // 관리자 경로: 권한 체크
     if (request.nextUrl.pathname.startsWith("/admin") && user) {
       const { data: profile } = await supabase
         .from("profiles")

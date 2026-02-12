@@ -2,17 +2,79 @@ import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/s
 import { isAdmin } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = 3;
+const ipRequestMap = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = ipRequestMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    ipRequestMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  entry.count += 1;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
+const MAX_TITLE_LENGTH = 100;
+const MAX_CONTENT_LENGTH = 5000;
+const MAX_NAME_LENGTH = 50;
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "서비스 준비 중입니다." }, { status: 503 });
   }
 
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (isRateLimited(ip)) {
+    return NextResponse.json(
+      { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+      { status: 429 }
+    );
+  }
+
   const body = await request.json();
   const { name, email, title, content } = body;
 
-  if (!name || !email || !title || !content) {
+  if (
+    typeof name !== "string" ||
+    typeof email !== "string" ||
+    typeof title !== "string" ||
+    typeof content !== "string"
+  ) {
+    return NextResponse.json(
+      { error: "잘못된 요청 형식입니다." },
+      { status: 400 }
+    );
+  }
+
+  if (!name.trim() || !email.trim() || !title.trim() || !content.trim()) {
     return NextResponse.json(
       { error: "이름, 이메일, 제목, 내용은 필수입니다." },
+      { status: 400 }
+    );
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json(
+      { error: "올바른 이메일 형식이 아닙니다." },
+      { status: 400 }
+    );
+  }
+
+  if (name.length > MAX_NAME_LENGTH) {
+    return NextResponse.json(
+      { error: `이름은 ${MAX_NAME_LENGTH}자 이하여야 합니다.` },
+      { status: 400 }
+    );
+  }
+
+  if (title.length > MAX_TITLE_LENGTH) {
+    return NextResponse.json(
+      { error: `제목은 ${MAX_TITLE_LENGTH}자 이하여야 합니다.` },
       { status: 400 }
     );
   }
@@ -20,6 +82,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (content.length < 30) {
     return NextResponse.json(
       { error: "이야기 내용은 최소 30자 이상이어야 합니다." },
+      { status: 400 }
+    );
+  }
+
+  if (content.length > MAX_CONTENT_LENGTH) {
+    return NextResponse.json(
+      { error: `이야기 내용은 ${MAX_CONTENT_LENGTH}자 이하여야 합니다.` },
       { status: 400 }
     );
   }

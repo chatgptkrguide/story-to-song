@@ -2,7 +2,6 @@
 
 import { useState, Suspense, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 function LoginForm(): React.ReactElement {
@@ -86,14 +85,8 @@ function LoginForm(): React.ReactElement {
         </button>
       </form>
 
-      <p className="text-slate-400 text-sm text-center mt-6">
-        계정이 없으신가요?{" "}
-        <Link
-          href="/auth/signup"
-          className="text-purple-400 hover:text-purple-300 transition-colors"
-        >
-          회원가입
-        </Link>
+      <p className="text-slate-500 text-xs text-center mt-6">
+        관리자 전용 로그인
       </p>
     </div>
   );
