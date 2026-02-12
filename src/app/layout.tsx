@@ -15,6 +15,17 @@ export const metadata: Metadata = {
   title: "Story to Song | 당신의 이야기가 음악이 됩니다",
   description:
     "소중한 이야기를 AI 음악으로 만들어 드립니다. 연인, 가족, 친구에게 세상에 하나뿐인 노래를 선물하세요.",
+  openGraph: {
+    title: "Story to Song | 당신의 이야기가 음악이 됩니다",
+    description:
+      "소중한 이야기를 세상에 하나뿐인 노래로 만들어 드립니다.",
+    type: "website",
+    locale: "ko_KR",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
