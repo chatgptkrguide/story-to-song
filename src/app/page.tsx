@@ -102,10 +102,10 @@ function FAQItem({ q, a }: { q: string; a: string }): React.ReactElement {
     <details className="group rounded-xl border border-slate-800/60 bg-slate-900/30 transition-all duration-300 hover:border-purple-500/20 hover:bg-slate-900/50">
       <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 text-sm font-medium text-white [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-3">
-          <MessageCircle className="h-4 w-4 flex-shrink-0 text-purple-400" />
+          <MessageCircle className="h-4 w-4 flex-shrink-0 text-purple-400" aria-hidden="true" />
           {q}
         </span>
-        <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-500 transition-transform duration-300 group-open:rotate-180" />
+        <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-500 transition-transform duration-300 group-open:rotate-180" aria-hidden="true" />
       </summary>
       <div className="px-5 pb-4 pl-12 text-sm leading-relaxed text-slate-400">
         {a}
@@ -199,7 +199,7 @@ export default function HomePage(): React.ReactElement {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex items-start gap-4 rounded-2xl border border-slate-800/60 bg-slate-900/40 p-5">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-600/15">
-                <Sparkles className="h-5 w-5 text-purple-400" />
+                <Sparkles className="h-5 w-5 text-purple-400" aria-hidden="true" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">현재 무료</h3>
@@ -210,7 +210,7 @@ export default function HomePage(): React.ReactElement {
             </div>
             <div className="flex items-start gap-4 rounded-2xl border border-slate-800/60 bg-slate-900/40 p-5">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-pink-600/15">
-                <Clock className="h-5 w-5 text-pink-400" />
+                <Clock className="h-5 w-5 text-pink-400" aria-hidden="true" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">3~5일 이내 제작</h3>

@@ -80,6 +80,24 @@ export default function AudioPlayer({
     setCurrentTime(newTime);
   }
 
+  function handleProgressKeyDown(e: React.KeyboardEvent<HTMLDivElement>): void {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const step = 5;
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const newTime = Math.min(currentTime + step, duration);
+      audio.currentTime = newTime;
+      setCurrentTime(newTime);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const newTime = Math.max(currentTime - step, 0);
+      audio.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  }
+
   function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>): void {
     const val = parseFloat(e.target.value);
     setVolume(val);
@@ -105,18 +123,23 @@ export default function AudioPlayer({
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-5">
+    <div
+      className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5 backdrop-blur-sm"
+      role="region"
+      aria-label="오디오 플레이어"
+    >
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
       <div className="flex items-center gap-4">
         <button
           onClick={togglePlay}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white transition-transform hover:scale-105"
+          aria-label={isPlaying ? "일시정지" : "재생"}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-105 hover:shadow-purple-500/30 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:ring-offset-2 focus:ring-offset-slate-950"
         >
           {isPlaying ? (
-            <Pause className="h-5 w-5" />
+            <Pause className="h-5 w-5" aria-hidden="true" />
           ) : (
-            <Play className="ml-0.5 h-5 w-5" />
+            <Play className="ml-0.5 h-5 w-5" aria-hidden="true" />
           )}
         </button>
 
@@ -124,14 +147,26 @@ export default function AudioPlayer({
           <div
             ref={progressRef}
             onClick={handleProgressClick}
-            className="relative h-1.5 cursor-pointer rounded-full bg-slate-700"
+            onKeyDown={handleProgressKeyDown}
+            role="slider"
+            tabIndex={0}
+            aria-label="재생 위치"
+            aria-valuemin={0}
+            aria-valuemax={Math.floor(duration)}
+            aria-valuenow={Math.floor(currentTime)}
+            aria-valuetext={`${formatTime(currentTime)} / ${formatTime(duration)}`}
+            className="group relative h-1.5 cursor-pointer rounded-full bg-slate-700 transition-all hover:h-2 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:ring-offset-2 focus:ring-offset-slate-800"
           >
             <div
-              className="absolute top-0 h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
+              className="absolute top-0 h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all"
               style={{ width: `${progressPercent}%` }}
             />
+            <div
+              className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-white bg-white opacity-0 shadow transition-opacity group-hover:opacity-100 group-focus:opacity-100"
+              style={{ left: `${progressPercent}%`, marginLeft: "-6px" }}
+            />
           </div>
-          <div className="mt-1 flex justify-between text-[10px] text-slate-500">
+          <div className="mt-1.5 flex justify-between text-[10px] text-slate-500">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -139,11 +174,15 @@ export default function AudioPlayer({
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        <button onClick={toggleMute} className="text-slate-400 hover:text-white">
+        <button
+          onClick={toggleMute}
+          aria-label={isMuted ? "음소거 해제" : "음소거"}
+          className="rounded-md text-slate-400 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:ring-offset-2 focus:ring-offset-slate-800"
+        >
           {isMuted ? (
-            <VolumeX className="h-4 w-4" />
+            <VolumeX className="h-4 w-4" aria-hidden="true" />
           ) : (
-            <Volume2 className="h-4 w-4" />
+            <Volume2 className="h-4 w-4" aria-hidden="true" />
           )}
         </button>
         <input
@@ -153,6 +192,7 @@ export default function AudioPlayer({
           step="0.01"
           value={isMuted ? 0 : volume}
           onChange={handleVolumeChange}
+          aria-label="볼륨 조절"
           className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-slate-700 accent-purple-500"
         />
       </div>
