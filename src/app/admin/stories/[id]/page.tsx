@@ -11,6 +11,10 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Copy,
+  Check,
+  ExternalLink,
+  Mail,
 } from "lucide-react";
 import Link from "next/link";
 import type { Story, Song, User } from "@/types/database";
@@ -80,6 +84,10 @@ export default function AdminStoryDetailPage() {
 
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
+
+  // Copy state
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -251,6 +259,36 @@ export default function AdminStoryDetailPage() {
     }
     setIsPlaying(!isPlaying);
   };
+
+  const getPlayUrl = (): string => {
+    if (!story?.song) return "";
+    return `${window.location.origin}/play/${story.song.id}`;
+  };
+
+  const handleCopyUrl = async (): Promise<void> => {
+    const url = getPlayUrl();
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
+  const getEmailTemplate = (): string => {
+    if (!story?.song) return "";
+    const recipientName = submitterName || "고객";
+    const playUrl = getPlayUrl();
+    return `${recipientName}님, 안녕하세요!\n\n보내주신 이야기 "${story.title}"를 바탕으로 노래가 완성되었습니다.\n\n아래 링크에서 감상하실 수 있습니다:\n${playUrl}\n\n마음에 드셨으면 좋겠습니다.\n감사합니다.\n\nStory to Song 드림`;
+  };
+
+  const handleCopyEmailTemplate = async (): Promise<void> => {
+    const template = getEmailTemplate();
+    if (!template) return;
+    await navigator.clipboard.writeText(template);
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
+
+  const submitterName = parseAdminNote(story?.admin_note ?? null).name;
 
   if (loading) {
     return (
@@ -516,6 +554,75 @@ export default function AdminStoryDetailPage() {
               </select>
             </div>
           </div>
+
+          {/* Play URL & Email Template (shown when song exists) */}
+          {song && (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4">
+              <h3 className="text-sm font-semibold text-white">공유 도구</h3>
+
+              {/* Play URL copy */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2">감상 페이지 URL</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0 rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-xs text-slate-300 truncate">
+                    /play/{song.id}
+                  </div>
+                  <button
+                    onClick={handleCopyUrl}
+                    className="flex items-center gap-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 px-3 py-2 text-xs font-medium text-white transition-colors flex-shrink-0"
+                  >
+                    {copiedUrl ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        복사됨
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        URL 복사
+                      </>
+                    )}
+                  </button>
+                </div>
+                <a
+                  href={`/play/${song.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  새 탭에서 열기
+                </a>
+              </div>
+
+              {/* Email template copy */}
+              <div className="pt-3 border-t border-slate-700">
+                <p className="text-xs text-slate-400 mb-2">
+                  <Mail className="w-3 h-3 inline mr-1" />
+                  제출자에게 보낼 안내 메시지
+                </p>
+                <div className="rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-xs text-slate-400 leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
+                  {getEmailTemplate()}
+                </div>
+                <button
+                  onClick={handleCopyEmailTemplate}
+                  className="mt-2 flex items-center gap-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-2 text-xs font-medium text-white transition-colors w-full justify-center"
+                >
+                  {copiedEmail ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-green-400" />
+                      복사 완료
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      안내 텍스트 복사
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Admin memo */}
           <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
